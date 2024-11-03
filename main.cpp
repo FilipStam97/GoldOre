@@ -2,6 +2,20 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"void main()\n"
+"{\n"
+" gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"}\0";
+
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"}\n\0";
+
 //the moment a user resizes the window the viewport should be adjusted as well
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -55,6 +69,84 @@ int main() {
 	//We register the callback functions after we've created the window and before the render loop is initiated.
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	// build and compile our shader program
+   // ------------------------------------
+	unsigned int vertexShader;
+	vertexShader = glCreateShader(GL_VERTEX_SHADER); //In order for OpenGL to use the shader it has to dynamically compile it at run-time from its source code. The first thing we need to do is create a shader object, again referenced by an ID
+
+	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); //we attach the shader source code to the shader object and compile the shader
+	glCompileShader(vertexShader);
+
+	int success;
+	char infoLog[512];
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+
+	}
+
+	unsigned int fragmentShader;
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glCompileShader(fragmentShader);
+
+
+	glGetShaderiv(fragmentShader, GL_FRAGMENT_SHADER, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::FFRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+
+	}
+
+	// To use the recently compiled shaders we have to link them to a shader program object and then activate this shader program when rendering objects
+	unsigned int shaderProgram;
+	shaderProgram = glCreateProgram(); //The glCreateProgram function creates a program and returns the ID reference to the newly created program object.
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glLinkProgram(shaderProgram);
+
+
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+	// once we've linked them into the program object; we no longer need them anymore:
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+
+	float vertices[] = {
+			-0.5f, -0.5f, 0.0f,
+			0.5f, -0.5f, 0.0f,
+			0.0f,  0.5f, 0.0f
+	};
+
+	//A vertex array object (also known as VAO) can be bound just like a vertex buffer object 
+	//and any subsequent vertex attribute calls from that point on will be stored inside the VAO.
+	unsigned int VAO;
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
+	unsigned int VBO;
+	glGenBuffers(1, &VBO); //generate bufffer annd put the reference into VBO var
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); //bind buffer to target tht defines the manner of use
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); //copy to gpu buffer memory
+	//GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
+	//GL_STATIC_DRAW : the data is set only once and used many times.
+	//GL_DYNAMIC_DRAW : the data is changed a lot and used many times.
+
+
+
+	//we have to manually specify what part of our input data goes to which vertex attribute in the vertex shader
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+
+
 	//render loop
 	// checks at the start of each loop iteration if GLFW has been instructed to close. 
 	//If so, the function returns true and the render loop stops running, after which we can close the application.
@@ -68,6 +160,12 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		
+
+		glUseProgram(shaderProgram);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
 		//---------------- check and call events and swap the buffers --------------------
 
 		//will swap the color buffer (a large 2D buffer that contains color values for each pixel in GLFW's window)
@@ -79,6 +177,10 @@ int main() {
 		glfwPollEvents();
 	}
 
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteProgram(shaderProgram);
 
 	//As soon as we exit the render loop we would like to properly clean/delete all of GLFW's resources that were allocated
 	glfwTerminate();
