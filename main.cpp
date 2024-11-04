@@ -120,9 +120,25 @@ int main() {
 	glDeleteShader(fragmentShader);
 
 	float vertices[] = {
-			-0.5f, -0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-			0.0f,  0.5f, 0.0f
+		// first triangle
+	   -0.9f, -0.5f, 0.0f,  // left 
+	   -0.0f, -0.5f, 0.0f,  // right
+	   -0.45f, 0.5f, 0.0f,  // top 
+	   // second triangle
+		0.0f, -0.5f, 0.0f,  // left
+		0.9f, -0.5f, 0.0f,  // right
+		0.45f, 0.5f, 0.0f   // top 
+	};
+
+	//float vertices[] = {
+	// 0.5f,  0.5f, 0.0f,  // top right
+	// 0.5f, -0.5f, 0.0f,  // bottom right
+	//-0.5f, -0.5f, 0.0f,  // bottom left
+	//-0.5f,  0.5f, 0.0f   // top left 
+	//};
+	unsigned int indices[] = {  // note that we start from 0!
+		0, 1, 3,   // first triangle
+		1, 2, 3    // second triangle
 	};
 
 	//A vertex array object (also known as VAO) can be bound just like a vertex buffer object 
@@ -131,10 +147,16 @@ int main() {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
+	unsigned int EBO;
+	glGenBuffers(1, &EBO);
+
 	unsigned int VBO;
 	glGenBuffers(1, &VBO); //generate bufffer annd put the reference into VBO var
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); //bind buffer to target tht defines the manner of use
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); //copy to gpu buffer memory
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); //bind buffer to target tht defines the manner of use
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); //copy to gpu buffer memory
 	//GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
 	//GL_STATIC_DRAW : the data is set only once and used many times.
 	//GL_DYNAMIC_DRAW : the data is changed a lot and used many times.
@@ -145,6 +167,7 @@ int main() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glBindVertexArray(0);
 
 
 	//render loop
@@ -160,12 +183,14 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		
+		glBindVertexArray(VAO);
 
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 		//---------------- check and call events and swap the buffers --------------------
 
 		//will swap the color buffer (a large 2D buffer that contains color values for each pixel in GLFW's window)
